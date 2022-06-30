@@ -9,7 +9,7 @@
         now: "{{ lookup('pipe', 'date +%F-%T') }}"
 
     - name: "Create a backup directory on prod server"
-      when: inventory_hostname in groups['prod']
+      when: inventory_hostname in groups['training']
       file:
         path: "/home/{{ dhis_user }}/db_copy/{{ now }}/"
         mode: 0777
@@ -17,27 +17,26 @@
         state: directory
 
     - name: "Create dump file of prod database"
-      when: inventory_hostname in groups['prod']
+      when: inventory_hostname in groups['training']
       postgresql_db:
         state: dump
         name: "{{ db_name }}"
         target: "/home/{{ dhis_user }}/db_copy/{{ now }}/{{ db_name }}.dump.gz"
       become_user: postgres
     
-    - name: "Copy the dump file to local machine"
-      when: inventory_hostname in groups['prod']
-      fetch:
+    # this task still has bugs
+    - name: Copy the file from prod to test with pull method.
+      when: inventory_hostname in groups['training']
+      tags: sync-pull
+      synchronize:
+        owner: yes
         src: "/home/{{ dhis_user }}/db_copy/{{ now }}/{{ db_name }}.dump.gz"
-        dest: "/home/{{ lookup('env', 'USER') }}/temp_dir/prod_db_copy/{{ now }}/"
-        flat: yes
-
-    - name: "Copy the dump file to the test instance"
-      when: inventory_hostname in groups['test']
-      copy:
-        src: "~/temp_dir/prod_db_copy/{{ now }}/{{ db_name }}.dump.gz"
-        dest: "/home/{{ dhis_user }}/prod_db_copy/{{ now }}/"
-
-
+        dest: "/home/{{ dhis_user }}/prod_db_copy/{{ now }}/{{ db_name }}.dump.gz"
+        copy_links: yes
+        mode: pull
+      delegate_to: "{{groups['test'][0]}}"
+      become: yes
+      
     - name: "Restart test postgresql:bypass db in use error"
       when: inventory_hostname in groups['test']
       service:
@@ -84,7 +83,7 @@
       become_user: postgres
 
     - name: "Cleanup temp data from prod server"
-      when: inventory_hostname in groups['prod']
+      when: inventory_hostname in groups['training']
       file:
         path: "/home/{{ dhis_user }}/db_copy"
         state: absent
@@ -96,8 +95,4 @@
         path: "/home/{{ dhis_user }}/prod_db_copy"
         state: absent
 
-    - name: "Cleanup temp data on the local machine"
-      shell:
-        "rm -rf {{ temp_dir }}"
-      delegate_to: localhost
 

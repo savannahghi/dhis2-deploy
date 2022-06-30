@@ -64,6 +64,8 @@ Secrets are encrypted using Ansible Vault. The encrypted secrets include variabl
 ```bash
 > cd playbooks
 > ansible-playbook -iinventory dhis2.yml --vault-id=~/.vaultpass
+**If the playbook has multiple environment targets:**
+> ansible-playbook -i inventory -l (test,play, or prod) dhis2.yml --vault-id=~/.vaultpass  -vv
 ```
 
 The decryption password (contents of `~/.vaultpass`) will be communicated to you offline, if needed.

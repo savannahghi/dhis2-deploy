@@ -9,6 +9,15 @@
     repo: ppa:bobjolliffe/dhis2-tools
   become: yes
 
+- name: Add Postgresql repository
+  shell: 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+  become: yes
+
+- name: Import gpg key
+  shell: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+  become: yes
+
+
 - name: Update and upgrade packages
   apt: update_cache=yes upgrade=dist
   become: yes
@@ -47,13 +56,13 @@
     - caddy
     - sshpass
     - dhis2-tools
-    - postgresql-10
-    - postgresql-client-10
-    - postgresql-contrib-10
-    - postgresql-10-postgis-2.4
+    - postgresql-14
+    - postgresql-client-14
+    - postgresql-contrib-14
+    - postgresql-14-postgis-3
     - libpq-dev
     - libssl-dev
-    - openjdk-8-jdk
+    - openjdk-11-jdk
     - tomcat9-user
   tags: ["deploy", "dhis"]
 
